@@ -5,19 +5,18 @@
 #include <span>
 #include <stdexcept>
 #include <windows.h>
+#include <cstdint>
+#include <cstring>
 
 namespace amd64::mem
 {
-    /// A literal for cast generic integers to std::byte cleanly.
-    constexpr std::byte operator""_b( unsigned long long value )
-    {
-        return std::byte{ static_cast<std::byte>( value ) };
-    }
+    /// A literal for casting generic integers to std::byte cleanly.
+    constexpr std::byte operator""_b( unsigned long long value ) { return static_cast<std::byte>( value ); }
 
     /// Custom deleter for VirtualProtect allocated memory for wrapping in smart pointers
     struct virtual_deleter
     {
-        void operator()(std::byte* ptr) const noexcept { if (ptr) VirtualFree( ptr, 0, MEM_RELEASE ); }
+        void operator()( std::byte* ptr ) const noexcept { if (ptr) VirtualFree( ptr, 0, MEM_RELEASE ); }
     };
 
     using BufferMemory = std::unique_ptr<std::byte[], virtual_deleter>;
@@ -42,7 +41,7 @@ namespace amd64::mem
             if ( !m_memory ) throw std::bad_alloc( );
         }
 
-        [[nodiscard]] void*         data( ) const noexcept { return m_memory.get(  ); }
+        [[nodiscard]] std::byte*    data( ) const noexcept { return m_memory.get(  ); }
         [[nodiscard]] std::size_t   size( ) const noexcept { return m_size;           }
 
         void write_byte( const std::byte byte )
@@ -65,12 +64,9 @@ namespace amd64::mem
 
         void write_imm32( const std::uint32_t value )
         {
-            write_bytes( std::array{
-                static_cast< std::byte >( value & 0xFF ),
-                static_cast< std::byte >( value >> 8 & 0xFF ),
-                static_cast< std::byte >( value >> 16 & 0xFF ),
-                static_cast< std::byte >( value >> 24 & 0xFF )
-            } );
+            std::array< std::byte, 4 > bytes { };
+            std::memcpy( bytes.data( ), std::addressof( value ), 4 );
+            write_bytes( bytes );
         }
 
         [[nodiscard]] bool make_exec( ) const
