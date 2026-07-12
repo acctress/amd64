@@ -14,7 +14,7 @@ std::int32_t main( )
         // ret
 
         buffer.write_byte( 0xB8_b );
-        buffer.write_imm32( 66 );
+        buffer.write_imm( 66 );
         buffer.write_byte( 0xC3_b );
 
         if ( !buffer.make_exec(  ) )

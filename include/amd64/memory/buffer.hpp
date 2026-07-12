@@ -43,6 +43,11 @@ namespace amd64::mem
 
         [[nodiscard]] std::byte*    data( ) const noexcept { return m_memory.get(  ); }
         [[nodiscard]] std::size_t   size( ) const noexcept { return m_size;           }
+        [[nodiscard]] std::size_t   pos( )  const noexcept { return m_pos;            }
+        [[nodiscard]] std::span<const std::byte> bytes() const noexcept
+        {
+            return { m_memory.get(), m_pos };
+        }
 
         void write_byte( const std::byte byte )
         {
@@ -62,11 +67,26 @@ namespace amd64::mem
             write_bytes( std::span( bytes.begin(), bytes.size( ) ) );
         }
 
-        void write_imm32( const std::uint32_t value )
+        template< typename T >
+        requires std::integral< T >
+        void write_imm( const T value )
         {
-            std::array< std::byte, 4 > bytes { };
-            std::memcpy( bytes.data( ), std::addressof( value ), 4 );
-            write_bytes( bytes );
+            if ( m_pos + sizeof( T ) > m_size ) throw std::runtime_error( "buffer overflow" );
+
+            std::memcpy( m_memory.get(  ) + m_pos, &value, sizeof( T ) );
+            m_pos += sizeof( T );
+        }
+
+        auto patch_at( const std::size_t pos, const std::span< const std::byte > bytes ) const
+        {
+            if ( pos + bytes.size(  ) > m_size ) throw std::runtime_error( "patch out of range" );
+            std::memcpy( m_memory.get(  ) + pos, bytes.data( ), bytes.size( ) );
+        }
+
+        auto skip( const std::size_t amount )
+        {
+            if ( m_pos + amount > m_size ) throw std::runtime_error( "buffer overflow in skip()" );
+            m_pos += amount;
         }
 
         [[nodiscard]] bool make_exec( ) const
