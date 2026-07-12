@@ -1,33 +1,30 @@
-#include <amd64/memory/buffer.hpp>
+#include <amd64/assembler/assembler.hpp>
+#include <windows.h>
 #include <print>
 
 std::int32_t main( )
 {
-    using namespace amd64::mem;
+    using namespace amd64::assembler;
+    using namespace amd64::assembler::registers;
 
+    static constexpr char title[] = "amd64";
+    static constexpr char text[]  = "helo world";
 
     try
     {
-        buffer_t buffer { 1024 };
+        Assembler a{ 256 };
 
-        // mov eax, 66
-        // ret
+        a.mov_reg_imm64( Register::rcx, 0 );
+        a.mov_reg_imm64( Register::rdx, reinterpret_cast< std::int64_t >( +text ) );
+        a.mov_reg_imm64( Register::r8,  reinterpret_cast< std::int64_t >( +title ) );
+        a.mov_reg_imm64( Register::r9,  MB_OK );
+        a.call( &MessageBoxA );
+        a.ret( );
 
-        buffer.write_byte( 0xB8_b );
-        buffer.write_imm( 66 );
-        buffer.write_byte( 0xC3_b );
-
-        if ( !buffer.make_exec(  ) )
-        {
-            std::println( "amd64[error]: make_exec() failed" );
-            return 1;
-        }
-
-        const auto fn = reinterpret_cast<int(*)()>( buffer.data(  ) );
-        int res = fn( );
-
-        std::println( "result: {}", res );
-    } catch ( std::exception& e )
+        const auto fn = a.commit<int(*)()>( );
+        fn( );
+    }
+    catch ( const std::exception& e )
     {
         std::println( "amd64[error]: {}", e.what() );
         return 1;

@@ -60,6 +60,11 @@ namespace amd64::assembler
             }
         }
 
+        auto patch_at( const std::size_t pos, const std::span<const std::byte> bytes ) const
+        {
+            m_buffer.patch_at( pos, bytes );
+        }
+
         auto nop( const std::uint32_t count )
         {
             for ( auto i { 0uz }; i < count; ++i ) m_buffer.write_byte( 0x90_b );
