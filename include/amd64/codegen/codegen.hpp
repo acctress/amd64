@@ -9,8 +9,7 @@
 #include <ranges>
 #include <string>
 #include <unordered_map>
-
-#define max(a, b) (((a) > (b)) ? (a) : (b))
+#include <algorithm>
 
 namespace amd64::codegen
 {
@@ -153,7 +152,7 @@ namespace amd64::codegen
             return result;
         }
 
-        std::size_t compute_max_live( const std::vector< live_range_t >& live_ranges )
+        static std::size_t compute_max_live( const std::vector< live_range_t >& live_ranges )
         {
             std::vector< std::size_t > bounds { };
             for ( const auto& r : live_ranges ) { bounds.push_back( r.start ); bounds.push_back( r.end ); }
