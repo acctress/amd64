@@ -1,4 +1,4 @@
-add_executable(amd64_examples math_module.cpp)
+add_executable(amd64_examples textual_ir.cpp)
 
 target_include_directories(amd64_examples PRIVATE
         ${CMAKE_SOURCE_DIR}/include
