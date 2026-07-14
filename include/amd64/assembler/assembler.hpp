@@ -36,7 +36,13 @@ namespace amd64::assembler
             return reinterpret_cast<F>( m_buffer.data( ) );
         }
 
-        [[nodiscard]] std::span<const std::byte> bytes() const noexcept { return m_buffer.bytes(); }
+        [[nodiscard]] std::span<const std::byte> bytes() const noexcept { return m_buffer.bytes();  }
+        [[nodiscard]] std::size_t                pos( )  const noexcept { return m_buffer.pos();    }
+
+        [[nodiscard]] const void* entry_at( const std::size_t pos ) const noexcept
+        {
+            return m_buffer.data( ) + pos;
+        }
 
         std::size_t label( )
         {

@@ -150,3 +150,69 @@ TEST_CASE( "spilled values get distinct, descending stack offsets", "[allocation
         for ( std::size_t j = i + 1; j < offsets.size(); ++j )
             REQUIRE( offsets[i] != offsets[j] );
 }
+
+TEST_CASE( "hint is honored when the hinted register is free", "[allocation]" )
+{
+    std::vector pool { Register::rax, Register::rbx, Register::rcx };
+    register_alloc_t alloc( pool );
+
+    const std::vector<live_range_t> ranges {
+        { 0, 0, 10, Register::rbx }, /* explicitly hints rbx */
+    };
+
+    auto [assignments, spills ] = alloc.run( ranges );
+
+    REQUIRE( assignments.at( 0 ) == Register::rbx );
+}
+
+TEST_CASE( "hint falls back to normal allocation when the hinted register is already taken", "[allocation]" )
+{
+    std::vector pool { Register::rax, Register::rbx };
+    register_alloc_t alloc( pool );
+
+    std::vector<live_range_t> ranges {
+        { 0, 0, 10, std::nullopt },       /* takes one of the two registers first */
+        { 1, 1, 10, Register::rax },      /* hints rax, but it may already be gone */
+    };
+
+    auto [assignments, spills ] = alloc.run( ranges );
+
+    REQUIRE( assignments.contains( 0 ) );
+    REQUIRE( assignments.contains( 1 ) );
+
+    if ( assignments.at( 0 ) == Register::rax )
+        REQUIRE( assignments.at( 1 ) == Register::rbx );
+}
+
+TEST_CASE( "multiple hinted values each get their own hinted register when free", "[allocation]" )
+{
+    std::vector pool { Register::rax, Register::rbx, Register::rcx };
+    register_alloc_t alloc( pool );
+
+    std::vector<live_range_t> ranges {
+        { 0, 0, 10, Register::rcx },
+        { 1, 0, 10, Register::rax },
+    };
+
+    auto [assignments, spills ] = alloc.run( ranges );
+
+    REQUIRE( assignments.at( 0 ) == Register::rcx );
+    REQUIRE( assignments.at( 1 ) == Register::rax );
+}
+
+TEST_CASE( "a hinted value can still be spilled if its hint is unavailable and the pool is empty", "[allocation]" )
+{
+    std::vector pool { Register::rax };
+    register_alloc_t alloc( pool );
+
+    std::vector<live_range_t> ranges {
+        { 0, 0, 100, std::nullopt },    /* takes rax, lives long */
+        { 1, 1, 5,   Register::rcx },   /* hints rcx, unavailable, pool now empty too */
+    };
+
+    auto [assignments, spills ] = alloc.run( ranges );
+
+    /* v0 outlives v1 so if a steal happens it should nott be v0, v1 spills itself. */
+    REQUIRE( assignments.contains( 1 ) );
+    REQUIRE( spills.contains( 0 ) );
+}

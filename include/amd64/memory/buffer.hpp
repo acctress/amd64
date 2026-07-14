@@ -1,10 +1,12 @@
 #pragma once
 
+#define NOMINMAX
+#include <windows.h>
+
 #include <array>
 #include <memory>
 #include <span>
 #include <stdexcept>
-#include <windows.h>
 #include <cstdint>
 #include <cstring>
 

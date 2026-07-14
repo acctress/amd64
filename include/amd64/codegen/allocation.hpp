@@ -8,6 +8,7 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 namespace amd64::codegen::allocation
 {
@@ -19,9 +20,11 @@ namespace amd64::codegen::allocation
     ///it must hold a register or stack slot
     struct live_range_t
     {
-        Value       value;
-        std::size_t start;
-        std::size_t end;
+        Value           value;
+        std::size_t     start;
+        std::size_t     end;
+        std::optional
+        < Register >    hint { std::nullopt };
     };
 
     ///@brief Result of the allocator, a map of where values resulted at.
@@ -51,6 +54,19 @@ namespace amd64::codegen::allocation
             {
                 expire_old_intervals( interval, active, res );
 
+                /* use hint register if available */
+                if ( interval.hint.has_value( ) )
+                {
+                    const auto reg = *interval.hint;
+                    if ( const auto iter = std::ranges::find( m_free, reg ); iter != m_free.end( ) )
+                    {
+                        m_free.erase( iter );
+                        res.assignments[ interval.value ] = reg;
+                        insert_sorted_by_end( active, interval );
+                        continue;
+                    }
+                }
+
                 /* if there are no more available register, spill to the stack */
                 if ( m_free.empty(  ) )
                 {
@@ -78,7 +94,7 @@ namespace amd64::codegen::allocation
             active.insert( pos, interval );
         }
 
-        void expire_old_intervals( const live_range_t& current, std::vector< live_range_t >& active, alloc_result_t& res )
+        void expire_old_intervals( const live_range_t& current, std::vector< live_range_t >& active, const alloc_result_t & res )
         {
             auto iter = active.begin(  );
             while ( iter != active.end(  ) && iter->end < current.start )
@@ -88,7 +104,7 @@ namespace amd64::codegen::allocation
             }
         }
 
-        void spill_at_interval(
+        static void  spill_at_interval(
             const live_range_t& current,
             std::vector< live_range_t >& active,
             alloc_result_t& res,

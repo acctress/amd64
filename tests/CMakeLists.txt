@@ -1,4 +1,4 @@
-add_executable(amd64_tests core.cpp assembler.cpp allocator.cpp register.cpp encode.cpp ir.cpp codegen_alloc.cpp)
+add_executable(amd64_tests core.cpp assembler.cpp allocator.cpp register.cpp encode.cpp ir.cpp codegen_alloc.cpp codegen.cpp)
 
 target_include_directories(amd64_tests PRIVATE
         ${CMAKE_SOURCE_DIR}/include
