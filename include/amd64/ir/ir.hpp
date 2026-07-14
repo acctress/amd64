@@ -2,6 +2,8 @@
 
 #include <amd64/assembler/assembler.hpp>
 
+#include <tuple>
+#include <utility>
 #include <cstdint>
 #include <utility>
 #include <variant>
@@ -81,6 +83,18 @@ namespace amd64::ir
         std::vector< std::vector< Value > > param_indices;
         std::vector< type_t > types;
         std::vector< basic_block_t > blocks;
+
+        template < std::size_t... I >
+        auto get_args_imp( std::index_sequence< I... > ) const
+        {
+            return std::tuple { get_arg( I ).value( )... };
+        }
+
+        template < std::size_t I >
+        auto get_args( ) const
+        {
+            return get_args_imp( std::make_index_sequence< I >{ } );
+        }
 
         auto iconst( const std::int64_t imm )
         {
@@ -204,7 +218,7 @@ namespace amd64::ir
     {
         std::vector< function_t > functions;
 
-        function_t& create_function( std::string name, const std::vector< type_t >& params, const type_t return_type )
+        function_t& create_function( std::string_view name, const std::vector< type_t >& params, const type_t return_type )
         {
             function_t function;
             function.name = std::move( name );

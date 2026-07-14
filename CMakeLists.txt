@@ -58,3 +58,4 @@ FetchContent_MakeAvailable(Catch2)
 
 enable_testing()
 add_subdirectory(tests)
+add_subdirectory(examples)
