@@ -2,11 +2,20 @@
 #include <amd64/ir/ir.hpp>
 #include <amd64/ir/parser.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <string_view>
+#include <print>
 
+using namespace std::string_view_literals;
 using namespace amd64::ir;
 using namespace amd64::ir::parser;
 
-static module_t parse( const std::string& text )
+module_t parse( const std::string& text )
+{
+    parser_t p( text );
+    return p.parse_module( );
+}
+
+module_t parse( const std::string_view text )
 {
     parser_t p( text );
     return p.parse_module( );
@@ -371,18 +380,18 @@ TEST_CASE( "parsed function preserves block count", "[parser]" )
 
 TEST_CASE( "empty source parses to an empty module", "[parser]" )
 {
-    auto [functions ] = parse( "" );
+    auto [functions ] = parse( ""sv );
     REQUIRE( functions.empty( ) );
 }
 
 TEST_CASE( "parse error: missing fn keyword throws", "[parser]" )
 {
-    REQUIRE_THROWS_AS( parse( "@foo() -> i64 {\n}\n" ), parse_error );
+    REQUIRE_THROWS_AS( parse( "@foo() -> i64 {\n}\n"sv ), parse_error );
 }
 
 TEST_CASE( "parse error: missing arrow throws", "[parser]" )
 {
-    REQUIRE_THROWS_AS( parse( "fn @foo() i64 {\n}\n" ), parse_error );
+    REQUIRE_THROWS_AS( parse( "fn @foo() i64 {\n}\n"sv ), parse_error );
 }
 
 TEST_CASE( "parse error: unknown comparison kind throws", "[parser]" )
@@ -568,4 +577,19 @@ TEST_CASE( "round trip, large hex-like native address", "[parser]" )
     auto text = to_string( mod );
     auto parsed = parse( text );
     REQUIRE( to_string( parsed ) == text );
+}
+
+TEST_CASE( "test textual ir parsing and execution", "[ir]" )
+{
+    constexpr std::string_view text = R"(fn @test(i64 %0, i64 %1) -> i64 {
+bb0():
+      %2 = iand %0, %1
+      ret %2
+}
+
+)";
+
+    const auto result = parse( text );
+
+    REQUIRE( to_string( result ) == text );
 }

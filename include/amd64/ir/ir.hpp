@@ -2,59 +2,145 @@
 
 #include <amd64/assembler/assembler.hpp>
 
+#include <cstdint>
+#include <stdexcept>
+#include <string>
 #include <tuple>
 #include <utility>
-#include <cstdint>
-#include <utility>
 #include <variant>
-#include <string>
 #include <vector>
-#include <stdexcept>
 
 namespace amd64::ir
 {
     using set_cc_kind = assembler::set_cc_kind;
-    using Value = std::uint32_t;
+    using Value       = std::uint32_t;
 
-    enum class type_t { i64, i32, boolean, pointer };
+    enum class type_t
+    {
+        i64,
+        i32,
+        boolean,
+        pointer
+    };
 
     /*
      * Instruction definitions are prefixed with "i_"
      */
 
-    struct i_const { Value result; std::int64_t constant; };
-    struct i_add   { Value result; Value lhs;  Value rhs; };
-    struct i_sub   { Value result; Value lhs;  Value rhs; };
-    struct i_mul   { Value result; Value lhs;  Value rhs; };
-    struct i_div   { Value result; Value lhs;  Value rhs; };
+    struct i_const
+    {
+        Value        result;
+        std::int64_t constant;
+    };
 
-    struct i_cmp   { Value result; set_cc_kind kind; Value lhs; Value rhs; };
+    struct i_add
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_sub
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_mul
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_div
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_cmp
+    {
+        Value       result;
+        set_cc_kind kind;
+        Value       lhs;
+        Value       rhs;
+    };
+
+    struct i_and
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_or
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_xor
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_not
+    {
+        Value result;
+        Value value;
+    };
+
+    struct i_shl
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_shr
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
+    struct i_neg
+    {
+        Value result;
+        Value value;
+    };
 
     ///@brief Call a native function pointer, or an internal name
     struct call_target_t
     {
-        std::variant< const void*, std::string > target;
+        std::variant< const void *, std::string > target;
     };
 
     struct i_call
     {
-        Value result;
+        Value                result;
         std::vector< Value > args;
-        call_target_t target;
+        call_target_t        target;
     };
 
     struct i_brif
     {
-        Value condition;
-        std::size_t true_blk;
-        std::size_t false_blk;
+        Value                condition;
+        std::size_t          true_blk;
+        std::size_t          false_blk;
         std::vector< Value > true_args;
         std::vector< Value > false_args;
     };
 
     struct i_jmp
     {
-        std::size_t to_block;
+        std::size_t          to_block;
         std::vector< Value > args;
     };
 
@@ -63,10 +149,25 @@ namespace amd64::ir
         Value value;
     };
 
-    using Inst = std::variant<
-        i_const, i_add, i_sub, i_mul, i_div,
-        i_cmp, i_call, i_brif, i_jmp, i_ret
-    >;
+    struct i_load
+    {
+        Value        result;
+        Value        base;
+        std::int32_t offset;
+        std::uint8_t width;
+        bool         sign_extended;
+    };
+
+    struct i_store
+    {
+        Value        value;
+        Value        base;
+        std::int32_t offset;
+        std::uint8_t width;
+    };
+
+    using Inst = std::variant< i_const, i_add, i_sub, i_mul, i_div, i_cmp, i_call, i_brif, i_jmp, i_ret, i_and, i_or, i_xor, i_not, i_shl,
+                               i_shr, i_neg, i_load, i_store >;
 
     struct basic_block_t
     {
@@ -76,141 +177,120 @@ namespace amd64::ir
 
     struct function_t
     {
-        std::string name;
-        type_t return_type { };
-        std::vector< Value > args;
-        std::vector< type_t > params;
+        std::string                         name;
+        type_t                              return_type {};
+        std::vector< Value >                args;
+        std::vector< type_t >               params;
         std::vector< std::vector< Value > > param_indices;
-        std::vector< type_t > types;
-        std::vector< basic_block_t > blocks;
+        std::vector< type_t >               types;
+        std::vector< basic_block_t >        blocks;
 
-        template < std::size_t... I >
-        auto get_args_imp( std::index_sequence< I... > ) const
+        template < std::size_t... I > auto get_args_imp( std::index_sequence< I... > ) const
         {
             return std::tuple { get_arg( I ).value( )... };
         }
 
-        template < std::size_t I >
-        auto get_args( ) const
+        template < std::size_t I > auto get_args( ) const { return get_args_imp( std::make_index_sequence< I > {} ); }
+
+        Value iconst( const std::int64_t imm ) { return emit< i_const >( type_t::i64, imm ); }
+
+        Value iadd( const Value lhs, const Value rhs ) { return emit< i_add >( type_t::i64, lhs, rhs ); }
+
+        Value isub( const Value lhs, const Value rhs ) { return emit< i_sub >( type_t::i64, lhs, rhs ); }
+
+        Value imul( const Value lhs, const Value rhs ) { return emit< i_mul >( type_t::i64, lhs, rhs ); }
+
+        Value idiv( const Value lhs, const Value rhs ) { return emit< i_div >( type_t::i64, lhs, rhs ); }
+
+        Value iand( const Value lhs, const Value rhs ) { return emit< i_and >( type_t::i64, lhs, rhs ); }
+
+        Value ior( const Value lhs, const Value rhs ) { return emit< i_or >( type_t::i64, lhs, rhs ); }
+
+        Value ixor( const Value lhs, const Value rhs ) { return emit< i_xor >( type_t::i64, lhs, rhs ); }
+
+        Value ishl( const Value lhs, const Value rhs ) { return emit< i_shl >( type_t::i64, lhs, rhs ); }
+
+        Value ishr( const Value lhs, const Value rhs ) { return emit< i_shr >( type_t::i64, lhs, rhs ); }
+
+        Value inot( const Value value ) { return emit< i_not >( type_t::i64, value ); }
+
+        Value ineg( const Value value ) { return emit< i_neg >( type_t::i64, value ); }
+
+        Value icmp( const set_cc_kind kind, const Value lhs, const Value rhs ) { return emit< i_cmp >( type_t::boolean, kind, lhs, rhs ); }
+
+        Value call( std::vector< Value > call_args, const call_target_t &target )
         {
-            return get_args_imp( std::make_index_sequence< I >{ } );
+            return emit< i_call >( type_t::boolean, std::move( call_args ), target );
         }
 
-        auto iconst( const std::int64_t imm )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
+        void ret( const Value value ) { emit_term< i_ret >( value ); }
 
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_const { result, imm } );
+        void jmp( const std::size_t to_block, std::vector< Value > blk_args ) { emit_term< i_jmp >( to_block, std::move( blk_args ) ); }
+
+        void brif( const Value condition, const std::size_t true_blk, const std::size_t false_blk, std::vector< Value > true_args,
+                   std::vector< Value > false_args )
+        {
+            emit_term< i_brif >( condition, true_blk, false_blk, std::move( true_args ), std::move( false_args ) );
+        }
+
+        void store( const Value value, const Value base, const std::int32_t offset, const std::uint8_t width )
+        {
+            if ( blocks.empty( ) )
+                throw std::runtime_error( "no available blocks in function" );
+            blocks.back( ).instructions.emplace_back( i_store { value, base, offset, width } );
+        }
+
+        Value load( const Value base, const std::int32_t offset, const std::uint8_t width, const bool sign_extend )
+        {
+            if ( blocks.empty( ) )
+                throw std::runtime_error( "no available blocks in function" );
+
+            const auto result = static_cast< Value >( types.size( ) );
+            blocks.back( ).instructions.emplace_back( i_load { result, base, offset, width, sign_extend } );
             types.push_back( type_t::i64 );
             return result;
         }
 
-        auto iadd( const Value lhs, const Value rhs )
+        basic_block_t &create_block( std::vector< type_t > blk_params )
         {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
+            basic_block_t block { .parameters = std::move( blk_params ), .instructions = {} };
 
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_add { result, lhs, rhs } );
-            types.push_back( type_t::i64 );
-            return result;
-        }
-
-        auto isub( const Value lhs, const Value rhs )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_sub { result, lhs, rhs } );
-            types.push_back( type_t::i64 );
-            return result;
-        }
-
-        auto imul( const Value lhs, const Value rhs )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_mul { result, lhs, rhs } );
-            types.push_back( type_t::i64 );
-            return result;
-        }
-
-        auto idiv( const Value lhs, const Value rhs )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_div { result, lhs, rhs } );
-            types.push_back( type_t::i64 );
-            return result;
-        }
-
-        auto icmp( const set_cc_kind kind, const Value lhs, const Value rhs )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_cmp { result, kind, lhs, rhs } );
-            types.push_back( type_t::boolean );
-            return result;
-        }
-
-        auto call( std::vector< Value > call_args, const call_target_t &target )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            const auto result = static_cast< Value >( types.size(  ) );
-            blocks.back(  ).instructions.emplace_back( i_call { result, std::move( call_args ), target } );
-            types.push_back( type_t::boolean );
-            return result;
-        }
-
-        void jmp( const std::size_t to_block, std::vector<Value> blk_args )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            blocks.back( ).instructions.emplace_back( i_jmp { to_block, std::move( blk_args ) } );
-        }
-
-        void brif( const Value condition, const std::size_t true_blk, const std::size_t false_blk,
-                   std::vector<Value> true_args, std::vector<Value> false_args )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            blocks.back( ).instructions.emplace_back(
-                i_brif { condition, true_blk, false_blk, std::move( true_args ), std::move( false_args ) }
-            );
-        }
-
-        void ret( const Value value )
-        {
-            if ( blocks.empty( ) ) throw std::runtime_error( "no available blocks in function" );
-
-            blocks.back( ).instructions.emplace_back( i_ret { value } );
-        }
-
-        basic_block_t& create_block( std::vector< type_t > blk_params )
-        {
-            basic_block_t block { .parameters = std::move( blk_params ), .instructions = { } };
-
-            std::vector< Value > indices { };
-            for ( const auto& t : block.parameters )
+            std::vector< Value > indices {};
+            for ( const auto &t : block.parameters )
             {
                 types.push_back( t );
-                indices.push_back( static_cast< Value >( types.size(  ) - 1 ) );
+                indices.push_back( static_cast< Value >( types.size( ) - 1 ) );
             }
 
             param_indices.push_back( std::move( indices ) );
             blocks.push_back( std::move( block ) );
 
-            return blocks.back(  );
+            return blocks.back( );
         }
 
         [[nodiscard]] std::optional< Value > get_arg( const std::size_t index ) const
         {
-            if ( index >= args.size( ) ) return std::nullopt;
+            if ( index >= args.size( ) )
+                return std::nullopt;
             return args[ index ];
+        }
+
+        template < typename I, typename... Args > Value emit( const type_t result_type, Args &&...argz )
+        {
+            if ( blocks.empty( ) )
+                throw std::runtime_error( "no available blocks in function" );
+
+            const auto res = static_cast< Value >( types.size( ) );
+            blocks.back( ).instructions.emplace_back( I { res, std::forward< Args >( argz )... } );
+            types.push_back( result_type );
+            return res;
+        }
+
+        template < typename I, typename... Args > void emit_term( Args &&...argz )
+        {
+            if ( blocks.empty( ) )
+                throw std::runtime_error( "no available blocks in function" );
+            blocks.back( ).instructions.emplace_back( I { std::forward< Args >( argz )... } );
         }
     };
 
@@ -218,30 +298,27 @@ namespace amd64::ir
     {
         std::vector< function_t > functions;
 
-        function_t& create_function( std::string_view name, const std::vector< type_t >& params, const type_t return_type )
+        function_t &create_function( std::string_view name, const std::vector< type_t > &params, const type_t return_type )
         {
             function_t function;
-            function.name = std::move( name );
+            function.name        = std::move( name );
             function.return_type = return_type;
-            function.params = params;
+            function.params      = params;
 
-            for ( const auto& p : params )
+            for ( const auto &p : params )
             {
                 function.types.push_back( p );
                 function.args.push_back( static_cast< Value >( function.types.size( ) - 1 ) );
             }
 
             functions.push_back( std::move( function ) );
-            function_t& fn = functions.back(  );
+            function_t &fn = functions.back( );
 
-            fn.create_block( { } );
+            fn.create_block( {} );
 
             return fn;
         }
 
-        function_t& get_function( const std::size_t index )
-        {
-            return functions[ index ];
-        }
+        function_t &get_function( const std::size_t index ) { return functions[ index ]; }
     };
-}
+} // namespace amd64::ir

@@ -1,6 +1,6 @@
 ---
 BasedOnStyle: LLVM
-AccessModifierOffset: -2
+AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Right
 AlignConsecutiveAssignments:
@@ -78,7 +78,7 @@ AllowShortCaseExpressionOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
 AllowShortCompoundRequirementOnASingleLine: true
 AllowShortEnumsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: false
@@ -187,7 +187,7 @@ JavaScriptQuotes: Leave
 JavaScriptWrapImports: true
 KeepEmptyLines:
   AtEndOfFile: false
-  AtStartOfBlock: true
+  AtStartOfBlock: false
   AtStartOfFile: true
 KeepFormFeed: false
 LambdaBodyIndentation: Signature
@@ -300,3 +300,4 @@ SpaceInEmptyParentheses: true
 SpacesInCStyleCastParentheses: true
 SpacesInConditionalStatement: true
 SpacesInParentheses: true
+Language: Cpp

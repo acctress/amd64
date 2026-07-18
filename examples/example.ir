@@ -16,7 +16,7 @@ bb0():
 
 fn @combined(i64 %0, i64 %1) -> i64 {
 bb0():
-  %2 = call @max(%0, %1)
-  %3 = call @square(%2)
-  ret %3
+    %2 = call @max(%0, %1)
+    %3 = call @square(%2)
+    ret %3
 }
