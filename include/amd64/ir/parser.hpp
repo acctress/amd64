@@ -64,9 +64,9 @@ namespace amd64::ir::parser
 
     struct token_t
     {
-        token_type_t                              type { };
+        token_type_t                              type {};
         std::variant< std::string, std::int64_t > value;
-        std::size_t                               pos { };
+        std::size_t                               pos {};
     };
 
     inline const std::unordered_map< std::string, token_type_t > keywords {
@@ -86,13 +86,13 @@ namespace amd64::ir::parser
         {    "i32",    token_type_t::kw_i32 },
         {   "bool",   token_type_t::kw_bool },
         {    "ptr",    token_type_t::kw_ptr },
-        {    "iand",    token_type_t::kw_iand },
+        {   "iand",   token_type_t::kw_iand },
         {    "ior",    token_type_t::kw_ior },
-        {    "ixor",    token_type_t::kw_ixor },
-        {    "inot",    token_type_t::kw_inot },
-        {    "ishl",    token_type_t::kw_ishl },
-        {    "ishr",    token_type_t::kw_ishr },
-        {    "ineg",    token_type_t::kw_neg },
+        {   "ixor",   token_type_t::kw_ixor },
+        {   "inot",   token_type_t::kw_inot },
+        {   "ishl",   token_type_t::kw_ishl },
+        {   "ishr",   token_type_t::kw_ishr },
+        {   "ineg",    token_type_t::kw_neg },
     };
 
     class lexer_t
@@ -176,22 +176,13 @@ namespace amd64::ir::parser
 
     private:
         std::string_view m_source;
-        std::size_t      m_pos { };
+        std::size_t      m_pos {};
 
-        static bool is_digit( const char c ) noexcept
-        {
-            return c >= '0' && c <= '9';
-        }
+        static bool is_digit( const char c ) noexcept { return c >= '0' && c <= '9'; }
 
-        static bool is_ident( const char c ) noexcept
-        {
-            return std::isalpha( static_cast< unsigned char >( c ) ) || c == '_';
-        }
+        static bool is_ident( const char c ) noexcept { return std::isalpha( static_cast< unsigned char >( c ) ) || c == '_'; }
 
-        static bool is_any( const char c ) noexcept
-        {
-            return std::isalnum( static_cast< unsigned char >( c ) ) || c == '_';
-        }
+        static bool is_any( const char c ) noexcept { return std::isalnum( static_cast< unsigned char >( c ) ) || c == '_'; }
 
         void skip_ws( )
         {
@@ -223,7 +214,7 @@ namespace amd64::ir::parser
 
             const std::string text( m_source.substr( scan_start, m_pos - scan_start ) );
 
-            std::int64_t value { };
+            std::int64_t value {};
             const auto   base_start = is_hex ? scan_start + ( text[ 0 ] == '-' ? 3 : 2 ) : scan_start;
             const auto [ ptr, ec ]  = std::from_chars( m_source.data( ) + base_start, m_source.data( ) + m_pos, value, is_hex ? 16 : 10 );
 
@@ -274,10 +265,7 @@ namespace amd64::ir::parser
         token_t                                   m_current;
         std::unordered_map< std::int64_t, Value > m_ids;
 
-        void advance( )
-        {
-            m_current = m_lexer.next( );
-        }
+        void advance( ) { m_current = m_lexer.next( ); }
 
         token_t expect( const token_type_t t, const char *what )
         {
@@ -547,6 +535,14 @@ namespace amd64::ir::parser
                 return set_cc_kind::gt;
             if ( s == "ge" )
                 return set_cc_kind::ge;
+            if ( s == "ult" )
+                return set_cc_kind::ult;
+            if ( s == "ule" )
+                return set_cc_kind::ule;
+            if ( s == "ugt" )
+                return set_cc_kind::ugt;
+            if ( s == "uge" )
+                return set_cc_kind::uge;
             throw parse_error( "unknown comparison kind: " + s );
         }
 
@@ -566,4 +562,4 @@ namespace amd64::ir::parser
             return call_target_t { .target = name };
         }
     };
-}
+} // namespace amd64::ir::parser
