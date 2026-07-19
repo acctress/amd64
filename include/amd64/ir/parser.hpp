@@ -22,6 +22,8 @@ namespace amd64::ir::parser
         kw_brif,
         kw_call,
         kw_native,
+        kw_load,
+        kw_store,
         kw_iconst,
         kw_iadd,
         kw_isub,
@@ -76,6 +78,8 @@ namespace amd64::ir::parser
         {   "brif",   token_type_t::kw_brif },
         {   "call",   token_type_t::kw_call },
         { "native", token_type_t::kw_native },
+        { "load",     token_type_t::kw_load },
+        { "store",   token_type_t::kw_store },
         { "iconst", token_type_t::kw_iconst },
         {   "iadd",   token_type_t::kw_iadd },
         {   "isub",   token_type_t::kw_isub },
@@ -440,6 +444,29 @@ namespace amd64::ir::parser
                 return;
             }
 
+            if ( m_current.type == token_type_t::kw_store )
+            {
+                advance( );
+                expect( token_type_t::dot, "'.'" );
+
+                std::string kind_str;
+                if  ( m_current.type == token_type_t::identifier ) kind_str = std::get<std::string>( m_current.value );
+                else if ( m_current.type == token_type_t::kw_i64 ) kind_str = "i64";
+                else if ( m_current.type == token_type_t::kw_i32 ) kind_str = "i32";
+                else throw parse_error( "expected load/store kind at position " + std::to_string( m_current.pos ) );
+
+                advance( );
+
+                const auto [width, sign_extend] = parse_load_kind( kind_str );
+                const auto value  = resolve( expect_percent( ) );
+                expect( token_type_t::comma, "','" );
+                const auto base   = resolve( expect_percent( ) );
+                expect( token_type_t::comma, "','" );
+                const auto offset = std::get<std::int64_t>( expect( token_type_t::integer, "offset" ).value );
+                fn.store( value, base, static_cast<std::int32_t>( offset ), width );
+                return;
+            }
+
             const auto result_id = expect_percent( );
             expect( token_type_t::equals, "'='" );
 
@@ -517,6 +544,80 @@ namespace amd64::ir::parser
                     check_id( result_id, fn.call( args, target ) );
                     return;
                 }
+                case token_type_t::kw_load:
+                {
+                    advance( );
+                    expect( token_type_t::dot, "'.'" );
+
+                    std::string kind_str;
+                    if  ( m_current.type == token_type_t::identifier ) kind_str = std::get<std::string>( m_current.value );
+                    else if ( m_current.type == token_type_t::kw_i64 ) kind_str = "i64";
+                    else if ( m_current.type == token_type_t::kw_i32 ) kind_str = "i32";
+                    else throw parse_error( "expected load/store kind at position " + std::to_string( m_current.pos ) );
+
+                    advance( );
+
+                    const auto [width, sign_extend] = parse_load_kind( kind_str );
+                    const auto base   = resolve( expect_percent( ) );
+
+                    expect( token_type_t::comma, "','" );
+
+                    const auto offset = std::get<std::int64_t>( expect( token_type_t::integer, "offset" ).value );
+
+                    check_id( result_id, fn.load( base, static_cast<std::int32_t>( offset ), width, sign_extend ) );
+
+                    return;
+                }
+                case token_type_t::kw_ior:
+                {
+                    advance( );
+                    const auto lhs = resolve( expect_percent( ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto rhs = resolve( expect_percent( ) );
+                    check_id( result_id, fn.ior( lhs, rhs ) );
+                    return;
+                }
+                case token_type_t::kw_ixor:
+                {
+                    advance( );
+                    const auto lhs = resolve( expect_percent( ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto rhs = resolve( expect_percent( ) );
+                    check_id( result_id, fn.ixor( lhs, rhs ) );
+                    return;
+                }
+                case token_type_t::kw_ishl:
+                {
+                    advance( );
+                    const auto lhs = resolve( expect_percent( ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto rhs = resolve( expect_percent( ) );
+                    check_id( result_id, fn.ishl( lhs, rhs ) );
+                    return;
+                }
+                case token_type_t::kw_ishr:
+                {
+                    advance( );
+                    const auto lhs = resolve( expect_percent( ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto rhs = resolve( expect_percent( ) );
+                    check_id( result_id, fn.ishr( lhs, rhs ) );
+                    return;
+                }
+                case token_type_t::kw_inot:
+                {
+                    advance( );
+                    const auto val = resolve( expect_percent( ) );
+                    check_id( result_id, fn.inot( val ) );
+                    return;
+                }
+                case token_type_t::kw_neg:
+                {
+                    advance( );
+                    const auto val = resolve( expect_percent( ) );
+                    check_id( result_id, fn.ineg( val ) );
+                    return;
+                }
                 default : throw parse_error( "unexpected instruction at position " + std::to_string( m_current.pos ) );
             }
         }
@@ -544,6 +645,17 @@ namespace amd64::ir::parser
             if ( s == "uge" )
                 return set_cc_kind::uge;
             throw parse_error( "unknown comparison kind: " + s );
+        }
+
+        static std::tuple<std::uint8_t, bool> parse_load_kind( const std::string& s )
+        {
+            if ( s == "i8"  ) return { 1, false };
+            if ( s == "i8s" ) return { 1, true  };
+            if ( s == "i16" ) return { 2, false };
+            if ( s == "i16s") return { 2, true  };
+            if ( s == "i32" ) return { 4, false };
+            if ( s == "i64" ) return { 8, false };
+            throw parse_error( "unknown load/store kind: " + s );
         }
 
         call_target_t parse_call_target( )

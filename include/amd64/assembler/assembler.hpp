@@ -181,6 +181,16 @@ namespace amd64::assembler
             emit_mem_disp32( 0x89_b, src, base, offset );
         }
 
+        auto mov_mem_reg8( const Register base, const std::int32_t offset, const Register src )
+        {
+            emit_mem_disp32_8( 0x88_b, src, base, offset );
+        }
+
+        auto mov_mem_reg16( const Register base, const std::int32_t offset, const Register src )
+        {
+            emit_mem_disp32_ext( { 0x66_b, std::byte{ rex( false, src, base ) }, 0x89_b}, src, base, offset );
+        }
+
         auto mov_mem_imm32( const Register base, const std::int32_t offset, const std::int32_t imm )
         {
             emit_mem_disp32( 0xC7_b, Register::rax, base, offset );
@@ -193,6 +203,31 @@ namespace amd64::assembler
             if ( ext( dst ) || ext( src ) )
                 m_buffer.write_byte( std::byte { rex( true, src, dst ) } );
             m_buffer.write_bytes( { 0x0F_b, 0x10_b, std::byte { mod_rm( src, dst ) } } );
+        }
+
+        auto mov_reg_mem8( const Register dst, const Register base, const std::int32_t offset )
+        {
+            emit_mem_disp32_8( 0x8A_b, dst, base, offset );
+        }
+
+        auto movzx_reg_mem8( const Register r, const Register b, const std::int32_t o )
+        {
+            emit_mem_disp32_ext( { std::byte { rex( true, r, b ) }, 0x0F_b, 0xB6_b }, r, b, o );
+        }
+
+        auto movzx_reg_mem16( const Register r, const Register b, const std::int32_t o )
+        {
+            emit_mem_disp32_ext( { 0x66_b, std::byte { rex( true, r, b ) }, 0x0F_b, 0xB7_b }, r, b, o );
+        }
+
+        auto movsx_reg_mem8( const Register r, const Register b, const std::int32_t o )
+        {
+            emit_mem_disp32_ext( { std::byte { rex( true, r, b ) }, 0x0F_b, 0xBE_b }, r, b, o );
+        }
+
+        auto movsx_reg_mem16( const Register r, const Register b, const std::int32_t o )
+        {
+            emit_mem_disp32_ext( { 0x66_b, std::byte { rex( true, r, b ) }, 0x0F_b, 0xBF_b }, r, b, o );
         }
 
         auto enter( const std::size_t size )
@@ -276,6 +311,29 @@ namespace amd64::assembler
             if ( base == Register::rsp )
                 m_buffer.write_byte( 0x24_b );
 
+            m_buffer.write_imm( offset );
+        }
+
+        void emit_mem_disp32_8( const std::byte opcode, const Register reg_field, const Register base, const std::int32_t offset )
+        {
+            if ( ext( reg_field ) || ext( base ) )
+                m_buffer.write_byte( std::byte { rex( false, reg_field, base ) } );
+
+            m_buffer.write_bytes( { opcode, std::byte { static_cast< std::uint8_t >( 0x80 | enc( reg_field ) << 3 | enc( base ) ) } } );
+
+            if ( base == Register::rsp )
+                m_buffer.write_byte( 0x24_b );
+
+            m_buffer.write_imm( offset );
+        }
+
+        void emit_mem_disp32_ext( const std::initializer_list< std::byte > bytes, const Register reg_field, const Register base,
+                                  const std::int32_t offset )
+        {
+            m_buffer.write_bytes( bytes );
+            m_buffer.write_bytes( { std::byte { static_cast< std::uint8_t >( 0x80 | enc( reg_field ) << 3 | enc( base ) ) } } );
+            if ( base == Register::rsp )
+                m_buffer.write_byte( 0x24_b );
             m_buffer.write_imm( offset );
         }
     };

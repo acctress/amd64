@@ -9,7 +9,8 @@ add_executable(amd64_tests
         codegen.cpp
         fmt.cpp
         lexer.cpp
-        parser.cpp)
+        parser.cpp
+        codegen_ext.cpp)
 
 target_include_directories(amd64_tests PRIVATE
         ${CMAKE_SOURCE_DIR}/include

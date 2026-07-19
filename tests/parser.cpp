@@ -579,17 +579,149 @@ TEST_CASE( "round trip, large hex-like native address", "[parser]" )
     REQUIRE( to_string( parsed ) == text );
 }
 
-TEST_CASE( "test textual ir parsing and execution", "[ir]" )
+TEST_CASE( "round trip, iand", "[parser]" )
 {
-    constexpr std::string_view text = R"(fn @test(i64 %0, i64 %1) -> i64 {
-bb0():
-      %2 = iand %0, %1
-      ret %2
+    module_t mod;
+    auto& fn = mod.create_function( "andtest", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.iand( fn.args[0], fn.args[1] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
 }
 
-)";
+TEST_CASE( "round trip, ior", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "ortest", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ior( fn.args[0], fn.args[1] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
 
-    const auto result = parse( text );
+TEST_CASE( "round trip, ixor", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "xortest", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ixor( fn.args[0], fn.args[1] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
 
-    REQUIRE( to_string( result ) == text );
+TEST_CASE( "round trip, inot", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "nottest", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.inot( fn.args[0] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, ishl", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "shltest", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ishl( fn.args[0], fn.args[1] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, ishr", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "shrtest", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ishr( fn.args[0], fn.args[1] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, ineg", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "negtest", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ineg( fn.args[0] ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load.i64", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "load64", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 0, 8, false ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load.i8", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "load8", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 0, 1, false ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load.i8s", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "load8s", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 0, 1, true ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load.i16", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "load16", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 0, 2, false ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load.i16s", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "load16s", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 0, 2, true ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, store.i64", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "store64", { type_t::pointer, type_t::i64 }, type_t::i64 );
+    fn.store( fn.args[1], fn.args[0], 0, 8 );
+    fn.ret( fn.args[1] );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, store.i8", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "store8", { type_t::pointer, type_t::i64 }, type_t::i64 );
+    fn.store( fn.args[1], fn.args[0], 0, 1 );
+    fn.ret( fn.args[1] );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, load with nonzero offset", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "loadoff", { type_t::pointer }, type_t::i64 );
+    fn.ret( fn.load( fn.args[0], 16, 8, false ) );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
+}
+
+TEST_CASE( "round trip, store with negative offset", "[parser]" )
+{
+    module_t mod;
+    auto& fn = mod.create_function( "storeneg", { type_t::pointer, type_t::i64 }, type_t::i64 );
+    fn.store( fn.args[1], fn.args[0], -8, 8 );
+    fn.ret( fn.args[1] );
+    auto text = to_string( mod );
+    REQUIRE( to_string( parse( text ) ) == text );
 }

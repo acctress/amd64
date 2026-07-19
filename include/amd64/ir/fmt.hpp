@@ -40,6 +40,14 @@ namespace amd64::ir
         return "?";
     }
 
+    inline std::string_view fmt_load_kind( const std::uint8_t width, const bool sign_extended )
+    {
+        if ( width == 1 ) return sign_extended ? "i8s" : "i8";
+        if ( width == 2 ) return sign_extended ? "i16s" : "i16";
+        if ( width == 4 ) return "i32";
+        return "i64";
+    }
+
     inline void fmt_inst( const Inst &inst, std::string &fmt )
     {
         std::visit(
@@ -75,6 +83,10 @@ namespace amd64::ir
                     fmt += std::format( "\t%{} = ineg %{}\n", i.result, i.value );
                 else if constexpr ( std::is_same_v< T, i_cmp > )
                     fmt += std::format( "\t%{} = icmp.{} %{}, %{}\n", i.result, fmt_set_cc_kind( i.kind ), i.lhs, i.rhs );
+                else if constexpr ( std::is_same_v< T, i_load > )
+                    fmt += std::format( "\t%{} = load.{} %{}, {}\n", i.result, fmt_load_kind( i.width, i.sign_extended ), i.base, i.offset );
+                else if constexpr ( std::is_same_v< T, i_store > )
+                    fmt += std::format( "\tstore.{} %{}, %{}, {}\n", fmt_load_kind( i.width, false ), i.value, i.base, i.offset );
                 else if constexpr ( std::is_same_v< T, i_call > )
                 {
                     if ( std::holds_alternative< const void * >( i.target.target ) )

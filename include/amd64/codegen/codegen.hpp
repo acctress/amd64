@@ -40,7 +40,7 @@ namespace amd64::codegen
 
     struct gen_module_t
     {
-        std::unordered_map< std::string, const void * > functions {};
+        std::unordered_map< std::string, const void * > functions { };
 
         template < typename F > [[nodiscard]] F get_function( const std::string &sym ) const
         {
@@ -58,8 +58,8 @@ namespace amd64::codegen
 
         static std::vector< live_range_t > compute_live_ranges( const function_t &func )
         {
-            std::unordered_map< Value, live_range_t > live_ranges {};
-            std::uint32_t                             inst_idx {};
+            std::unordered_map< Value, live_range_t > live_ranges { };
+            std::uint32_t                             inst_idx { };
 
             for ( const auto arg_v : func.args )
             {
@@ -85,13 +85,17 @@ namespace amd64::codegen
                         {
                             using T = std::decay_t< T0 >;
 
-                            /// TODO: design a nicer way to handle this, it's terrible right now
+                            /// TODO: design a nicer way to handle this, it's terrible right
+                            /// now
 
-                            if constexpr ( std::is_same_v< T, i_const > || std::is_same_v< T, i_add > || std::is_same_v< T, i_sub >
-                                           || std::is_same_v< T, i_mul > || std::is_same_v< T, i_div > || std::is_same_v< T, i_cmp >
-                                           || std::is_same_v< T, i_call > || std::is_same_v< T, i_load > )
+                            if constexpr ( std::is_same_v<T, i_const> || std::is_same_v<T, i_add> || std::is_same_v<T, i_sub>
+                                        || std::is_same_v<T, i_mul>   || std::is_same_v<T, i_div> || std::is_same_v<T, i_cmp>
+                                        || std::is_same_v<T, i_call>  || std::is_same_v<T, i_load>
+                                        || std::is_same_v<T, i_and>   || std::is_same_v<T, i_or>  || std::is_same_v<T, i_xor>
+                                        || std::is_same_v<T, i_not>   || std::is_same_v<T, i_neg> || std::is_same_v<T, i_shl>
+                                        || std::is_same_v<T, i_shr> )
                             {
-                                live_ranges[ i.result ] = live_range_t { i.result, inst_idx, 0 };
+                                live_ranges[ i.result ] = live_range_t{ i.result, inst_idx, 0 };
                             }
                         },
                         inst );
@@ -101,8 +105,8 @@ namespace amd64::codegen
             }
 
             /**
-             * walk every operand usage, now "end" is populated from the last instruction
-             * index where each value was used
+             * walk every operand usage, now "end" is populated from the last
+             * instruction index where each value was used
              */
             inst_idx = static_cast< std::uint32_t >( func.args.size( ) );
 
@@ -117,7 +121,8 @@ namespace amd64::codegen
                         {
                             using T = std::decay_t< T0 >;
 
-                            /// TODO: design a nicer way to handle this, it's terrible right now
+                            /// TODO: design a nicer way to handle this, it's terrible right
+                            /// now
 
                             if constexpr ( std::is_same_v< T, i_add > || std::is_same_v< T, i_sub > || std::is_same_v< T, i_mul >
                                            || std::is_same_v< T, i_div > || std::is_same_v< T, i_cmp > || std::is_same_v< T, i_and >
@@ -127,17 +132,17 @@ namespace amd64::codegen
                                 live_ranges.at( i.lhs ).end = inst_idx;
                                 live_ranges.at( i.rhs ).end = inst_idx;
                             }
-                            else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > || std::is_same_v< T, i_call > )
+                            else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > || std::is_same_v< T, i_ret > )
+                            {
+                                live_ranges.at( i.value ).end = inst_idx;
+                            }
+                            else if constexpr ( std::is_same_v< T, i_call > )
                             {
                                 live_ranges.at( i.result ).end = inst_idx;
                             }
                             else if constexpr ( std::is_same_v< T, i_brif > )
                             {
                                 live_ranges.at( i.condition ).end = inst_idx;
-                            }
-                            else if constexpr ( std::is_same_v< T, i_ret > )
-                            {
-                                live_ranges.at( i.value ).end = inst_idx;
                             }
                             else if constexpr ( std::is_same_v< T, i_jmp > )
                             {
@@ -146,7 +151,13 @@ namespace amd64::codegen
                             }
                             else if constexpr ( std::is_same_v< T, i_load > )
                             {
+                                live_ranges.at( i.base ).end   = inst_idx;
                                 live_ranges.at( i.result ).end = inst_idx;
+                            }
+                            else if constexpr ( std::is_same_v< T, i_store > )
+                            {
+                                live_ranges.at( i.base ).end  = inst_idx;
+                                live_ranges.at( i.value ).end = inst_idx;
                             }
                         },
                         inst );
@@ -165,7 +176,7 @@ namespace amd64::codegen
 
         static std::size_t compute_max_live( const std::vector< live_range_t > &live_ranges )
         {
-            std::vector< std::size_t > bounds {};
+            std::vector< std::size_t > bounds { };
             for ( const auto &r : live_ranges )
             {
                 bounds.push_back( r.start );
@@ -218,7 +229,7 @@ namespace amd64::codegen
             const std::size_t stk_size      = slots * PTR_SIZE;
             const bool        frames_needed = stk_size > 0;
 
-            std::vector< Register > used_callee_regs {};
+            std::vector< Register > used_callee_regs { };
             for ( const auto &reg : result.assignments | std::views::values )
             {
                 if ( !is_callee_register( reg ) )
@@ -233,7 +244,7 @@ namespace amd64::codegen
             if ( frames_needed )
                 m_asm.enter( stk_size );
 
-            std::vector< std::size_t > labels {};
+            std::vector< std::size_t > labels { };
             for ( auto i { 0uz }; i < func.blocks.size( ); ++i )
                 labels.push_back( m_asm.label( ) );
 
@@ -283,6 +294,28 @@ namespace amd64::codegen
                                 emit_binary( result, i.lhs, i.rhs, i.result, &Assembler::xor_reg_reg );
                             else if constexpr ( std::is_same_v< T, i_not > )
                                 emit_unary( result, i.value, i.result, &Assembler::not_reg );
+                            else if constexpr ( std::is_same_v< T, i_neg > )
+                                emit_unary( result, i.value, i.result, &Assembler::neg );
+                            else if constexpr ( std::is_same_v< T, i_shl> )
+                            {
+                                const auto lhs = in_register( result, i.lhs, Register::r10 );
+                                const auto rhs = in_register( result, i.rhs, Register::r11 );
+                                const auto reg = dest_register( result, i.result );
+                                m_asm.mov_reg_reg( Register::rcx, rhs );
+                                m_asm.mov_reg_reg( reg, lhs );
+                                m_asm.shl_reg( reg );
+                                store_if_spilled( result, i.result, reg );
+                            }
+                            else if constexpr ( std::is_same_v< T, i_shr > )
+                            {
+                                const auto lhs = in_register( result, i.lhs, Register::r10 );
+                                const auto rhs = in_register( result, i.rhs, Register::r11 );
+                                const auto reg = dest_register( result, i.result );
+                                m_asm.mov_reg_reg( Register::rcx, rhs );
+                                m_asm.mov_reg_reg( reg, lhs );
+                                m_asm.shr_reg( reg );
+                                store_if_spilled( result, i.result, reg );
+                            }
                             else if constexpr ( std::is_same_v< T, i_div > )
                             {
                                 const Register lhs = in_register( result, i.lhs, Register::r10 );
@@ -361,9 +394,35 @@ namespace amd64::codegen
                             }
                             else if constexpr ( std::is_same_v< T, i_load > )
                             {
+                                const auto base = in_register( result, i.base, Register::rax );
+                                const auto dest = dest_register( result, i.result );
+
+                                switch ( i.width )
+                                {
+                                    case 1 :
+                                        i.sign_extended ? m_asm.movsx_reg_mem8( dest, base, i.offset )
+                                                        : m_asm.movzx_reg_mem8( dest, base, i.offset );
+                                        break;
+                                    case 2 :
+                                        i.sign_extended ? m_asm.movsx_reg_mem16( dest, base, i.offset )
+                                                        : m_asm.movzx_reg_mem16( dest, base, i.offset );
+                                        break;
+                                    default : m_asm.mov_reg_mem( dest, base, i.offset ); break;
+                                }
+
+                                store_if_spilled( result, i.result, dest );
                             }
                             else if constexpr ( std::is_same_v< T, i_store > )
                             {
+                                const auto base = in_register( result, i.base, Register::r10 );
+                                const auto src  = in_register( result, i.value, Register::r11 );
+
+                                switch ( i.width )
+                                {
+                                    case 1 : m_asm.mov_mem_reg8( base, i.offset, src ); break;
+                                    case 2 : m_asm.mov_mem_reg16( base, i.offset, src ); break;
+                                    default : m_asm.mov_mem_reg( base, i.offset, src ); break;
+                                }
                             }
                         },
                         inst );
@@ -373,7 +432,7 @@ namespace amd64::codegen
             auto patch_pos = prologue;
             for ( const auto reg : used_callee_regs )
             {
-                std::vector< std::byte > bytes {};
+                std::vector< std::byte > bytes { };
                 if ( ext( reg ) )
                     bytes = { std::byte { rex( false, Register::rax, reg ) }, 0xFF_b,
                               std::byte { static_cast< std::uint8_t >( 0xC0 | 6 << 3 | enc( reg ) ) } };
