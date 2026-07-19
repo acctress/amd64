@@ -145,10 +145,6 @@ TEST_CASE( "load.i8s sign extends", "[codegen_ext]" )
     fn.ret( fn.load( fn.args[0], 0, 1, true ) );
     auto gen = cg.compile_module( mod );
 
-    auto bytes = azm.bytes();
-    for ( auto b : bytes )
-        std::print( "{:02x} ", static_cast<std::uint8_t>(b) );
-
     auto f = gen.get_function<std::int64_t(*)( std::int8_t* )>( "f" );
     std::int8_t val = -1;
     REQUIRE( f( &val ) == -1LL );
@@ -163,14 +159,8 @@ TEST_CASE( "store.i64 writes to memory", "[codegen_ext]" )
     fn.store( fn.args[1], fn.args[0], 0, 8 );
     fn.ret( fn.args[1] );
 
-    std::println("{}", to_string( mod ));
-
 
     auto gen = cg.compile_module( mod );
-
-    auto bytes = azm.bytes();
-    for ( auto b : bytes )
-        std::print( "{:02x} ", static_cast<std::uint8_t>(b) );
 
     auto f = gen.get_function<std::int64_t(*)( std::int64_t*, std::int64_t )>( "f" );
     std::int64_t buf = 0;
@@ -185,19 +175,11 @@ TEST_CASE( "store.i8 writes one byte", "[codegen_ext]" )
     module_t mod;
 
     auto& fn = mod.create_function( "f", { type_t::pointer, type_t::i64 }, type_t::i64 );
-
     auto [ptr, val] = fn.get_args< 2 >( );
-
-
-
     fn.store( val, ptr, 0, 1 );
     fn.ret( val );
 
     auto gen = cg.compile_module( mod );
-
-    auto bytes = azm.bytes();
-    for ( auto b : bytes )
-        std::print( "{:02x} ", static_cast<std::uint8_t>(b) );
 
     auto f = gen.get_function<std::int64_t(*)( std::uint8_t*, std::int64_t )>( "f" );
     std::uint8_t buf[2] = { 0, 0 };
@@ -214,10 +196,6 @@ TEST_CASE( "load with nonzero offset reads correct field", "[codegen_ext]" )
     auto& fn = mod.create_function( "f", { type_t::pointer }, type_t::i64 );
     fn.ret( fn.load( fn.args[0], 8, 8, false ) );
     auto gen = cg.compile_module( mod );
-
-    auto bytes = azm.bytes();
-    for ( auto b : bytes )
-        std::print( "{:02x} ", static_cast<std::uint8_t>(b) );
 
     auto f = gen.get_function<std::int64_t(*)( std::int64_t* )>( "f" );
     std::int64_t arr[2] = { 10, 20 };

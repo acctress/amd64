@@ -139,6 +139,7 @@ namespace amd64::codegen
                             else if constexpr ( std::is_same_v< T, i_call > )
                             {
                                 live_ranges.at( i.result ).end = inst_idx;
+                                for ( const auto& arg : i.args ) live_ranges.at( arg ).end = inst_idx;
                             }
                             else if constexpr ( std::is_same_v< T, i_brif > )
                             {
