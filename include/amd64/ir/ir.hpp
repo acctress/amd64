@@ -256,30 +256,15 @@ namespace amd64::ir
         {
             basic_block_t block { .parameters = std::move( blk_params ), .instructions = {} };
 
-            std::println("creating block for function {} with param size of {}", name, block.parameters.size(  ));
-
-            auto types_pushed { 0uz };
-
             std::vector< Value > indices { };
             for ( const auto &t : block.parameters )
             {
-                std::println("pushed back {} type", static_cast<int>(t));
                 types.push_back( t );
                 indices.push_back( static_cast< Value >( types.size( ) - 1 ) );
-                types_pushed++;
             }
 
             param_indices.push_back( std::move( indices ) );
             blocks.push_back( std::move( block ) );
-
-            std::println("pushed {} types in total", types_pushed );
-
-            std::println("param_indices.size() = {}", param_indices.size( ) );
-
-            std::println("last param indice size = {}", param_indices.back(  ).size(  ));
-
-            std::print("\n\n");
-
 
             return blocks.back( );
         }
