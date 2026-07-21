@@ -595,6 +595,9 @@ TEST_CASE( "verify jit call to existing function passes", "[verify]" )
     auto& caller = mod.create_function( "caller", {}, type_t::i64 );
     call_target_t target { .target = std::string( "helper" ) };
     caller.ret( caller.call( {}, target ) );
+
+    std::println("{}", to_string(mod));
+
     ok( mod );
 }
 
@@ -698,5 +701,8 @@ TEST_CASE( "verify deep block chain is valid",             "[verify]" )
         if ( i < 5 ) fn.jmp( i + 1, { fn.param_indices[i][0] } );
         else         fn.ret( fn.param_indices[i][0] );
     }
+
+    std::println("{}", to_string(mod));
+
     ok( mod );
 }
