@@ -15,6 +15,24 @@
 #include <fstream>
 #include <sstream>
 #include <print>
+#include <Zydis/Zydis.h>
+
+void print_disassembly(std::span<const std::byte> bytes, uint64_t runtime_address = 0x1000) {
+    ZydisDisassembledInstruction instruction;
+    size_t offset = 0;
+
+    while (ZYAN_SUCCESS(ZydisDisassembleIntel(
+        ZYDIS_MACHINE_MODE_LONG_64,
+        runtime_address + offset,
+        bytes.data() + offset,
+        bytes.size() - offset,
+        &instruction
+    ))) {
+        std::println("{:#x}: {}", runtime_address + offset, instruction.text);
+
+        offset += instruction.info.length;
+    }
+}
 
 namespace tinyc
 {
@@ -618,6 +636,8 @@ std::int32_t main( int argc, char** argv )
         if ( !main_fn ) { std::println( "error: no 'main' function" ); return 1; }
 
         std::print( "{}", main_fn() );
+
+        print_disassembly( azm.bytes(  ) );
     }
     catch ( const std::exception& e )
     {

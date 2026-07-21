@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstring>
 
+
 namespace amd64::mem
 {
     /// A literal for casting generic integers to std::byte cleanly.
