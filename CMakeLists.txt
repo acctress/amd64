@@ -35,6 +35,10 @@ file(GLOB_RECURSE PROJ_SOURCES CONFIGURE_DEPENDS
 # Add executable target (Change to add_library if building DLL).
 add_executable(${PROJECT_NAME} ${PROJ_SOURCES} ${PROJ_HEADERS})
 
+if ( UNIX )
+    target_link_libraries( ${PROJECT_NAME} PRIVATE pthread )
+endif()
+
 # Add the include directories for the project.
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -40,7 +40,7 @@ namespace amd64::assembler
     public:
         explicit Assembler( const std::size_t size ) : m_size( size ), m_buffer( size ) { }
 
-        template < typename F > [[nodiscard]] F commit( ) const
+        template < typename F > [[maybe_unused]] F commit( ) const
         {
             if ( !m_buffer.make_exec( ) )
                 throw std::runtime_error( "make_exec() failed" );
@@ -151,6 +151,14 @@ namespace amd64::assembler
 
         auto shr_reg( const Register reg ) { emit_digit_rm( 0xD3_b, 5, reg ); }
 
+        auto shl_reg_imm( const Register reg, const std::uint8_t shift ) { emit_digit_rm_imm8( 4, reg, shift ); }
+
+        auto shr_reg_imm( const Register reg, const std::uint8_t shift ) { emit_digit_rm_imm8( 5, reg, shift ); }
+
+        auto sar_reg_imm( const Register reg, const std::uint8_t shift ) { emit_digit_rm_imm8( 7, reg, shift ); }
+
+        auto udiv( const Register reg ) { emit_digit_rm( 0xF7_b, 6, reg ); }
+
         auto idiv( const Register reg ) { emit_digit_rm( 0xF7_b, 7, reg ); }
 
         auto jmp( const std::size_t label ) { emit_jcc( { 0xE9_b }, label ); }
@@ -162,6 +170,8 @@ namespace amd64::assembler
         auto jl( const std::size_t label ) { emit_jcc( { 0x0F_b, 0x8C_b }, label ); }
 
         auto jge( const std::size_t label ) { emit_jcc( { 0x0F_b, 0x8D_b }, label ); }
+
+        auto xor_rdx( ) { xor_reg_reg( Register::rdx, Register::rdx ); }
 
         auto call( auto fptr )
         {
@@ -232,12 +242,15 @@ namespace amd64::assembler
 
         auto enter( const std::size_t size )
         {
-            const std::size_t aligned = ( size + 15 ) & ~std::size_t { 15 };
+            const std::size_t aligned = ( size + 15 ) & ~std::size_t{ 15 };
 
             push( Register::rbp );
             mov_reg_reg( Register::rbp, Register::rsp );
-            /// TODO: add support for linux, system v does not need the 32 windows shadow space
-            sub_reg_imm32( Register::rsp, static_cast< std::int32_t >( aligned + 32 ) );
+#ifdef _WIN32
+            sub_reg_imm32( Register::rsp, static_cast<std::int32_t>( aligned + 32 ) );
+#else
+            sub_reg_imm32( Register::rsp, static_cast<std::int32_t>( aligned ) );
+#endif
         }
 
         auto leave( )
@@ -335,6 +348,13 @@ namespace amd64::assembler
             if ( base == Register::rsp )
                 m_buffer.write_byte( 0x24_b );
             m_buffer.write_imm( offset );
+        }
+
+        void emit_digit_rm_imm8( const std::uint8_t digit, const Register reg, const std::uint8_t imm )
+        {
+            m_buffer.write_bytes( { std::byte{ rex( true, Register::rax, reg ) }, 0xC1_b,
+                std::byte{ static_cast<std::uint8_t>( 0xC0 | digit << 3 | enc( reg ) ) } } );
+            m_buffer.write_imm( imm );
         }
     };
 } // namespace amd64::assembler

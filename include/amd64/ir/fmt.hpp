@@ -67,6 +67,8 @@ namespace amd64::ir
                     fmt += std::format( "\t%{} = imul %{}, %{}\n", i.result, i.lhs, i.rhs );
                 else if constexpr ( std::is_same_v< T, i_div > )
                     fmt += std::format( "\t%{} = idiv %{}, %{}\n", i.result, i.lhs, i.rhs );
+                else if constexpr ( std::is_same_v< T, i_udiv > )
+                    fmt += std::format( "\t%{} = udiv %{}, %{}\n", i.result, i.lhs, i.rhs );
                 else if constexpr ( std::is_same_v< T, i_and > )
                     fmt += std::format( "\t%{} = iand %{}, %{}\n", i.result, i.lhs, i.rhs );
                 else if constexpr ( std::is_same_v< T, i_or > )
@@ -79,6 +81,12 @@ namespace amd64::ir
                     fmt += std::format( "\t%{} = ishl %{}, %{}\n", i.result, i.lhs, i.rhs );
                 else if constexpr ( std::is_same_v< T, i_shr > )
                     fmt += std::format( "\t%{} = ishr %{}, %{}\n", i.result, i.lhs, i.rhs );
+                else if constexpr ( std::is_same_v<T, i_shl_imm> )
+                    fmt += std::format( "\t%{} = ishl_imm %{}, {}\n", i.result, i.lhs, i.imm );
+                else if constexpr ( std::is_same_v<T, i_shr_imm> )
+                    fmt += std::format( "\t%{} = ishr_imm %{}, {}\n", i.result, i.lhs, i.imm );
+                else if constexpr ( std::is_same_v<T, i_sar_imm> )
+                    fmt += std::format( "\t%{} = isar_imm %{}, {}\n", i.result, i.lhs, i.imm );
                 else if constexpr ( std::is_same_v< T, i_neg > )
                     fmt += std::format( "\t%{} = ineg %{}\n", i.result, i.value );
                 else if constexpr ( std::is_same_v< T, i_cmp > )

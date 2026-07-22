@@ -67,10 +67,13 @@ namespace amd64::codegen
                                 || std::is_same_v< T, i_mul > || std::is_same_v< T, i_div >
                                 || std::is_same_v< T, i_and > || std::is_same_v< T, i_or >
                                 || std::is_same_v< T, i_xor > || std::is_same_v< T, i_shl >
-                                || std::is_same_v< T, i_shr > || std::is_same_v< T, i_cmp > )
+                                || std::is_same_v< T, i_shr > || std::is_same_v< T, i_cmp >
+                                || std::is_same_v< T, i_udiv > )
                     {
                         req( i.lhs ); req( i.rhs );
                     }
+                    else if constexpr ( std::is_same_v<T, i_shl_imm> || std::is_same_v<T, i_shr_imm> )
+                        req( i.lhs );
                     else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > )
                         req( i.value );
                     else if constexpr ( std::is_same_v< T, i_load > )
@@ -118,20 +121,9 @@ namespace amd64::codegen
                     {
                         for ( const auto [blk, args] : { std::pair{ i.true_blk, &i.true_args }, std::pair{ i.false_blk, &i.false_args } } )
                         {
-                            std::println("passed args: {}", args->size());
-
-                            for ( const auto& indices : func.param_indices )
-                            {
-                                std::print("[");
-                                for ( const auto& v : indices ) std::print("{}, ", v);
-                                std::print("]\n");
-                            }
-
-                            std::println("expected args: {}", func.param_indices[bidx].size(  ));
-
                             if ( blk >= func.blocks.size(  ))
                                 throw verify_error( std::format( "{}:bb{}: brif target bb{} out of range", func.name, bidx, blk ) );
-                            if ( args->size( ) != func.param_indices[ bidx ].size( ) )
+                            if ( args->size( ) != func.param_indices[ blk ].size( ) )
                                 throw verify_error( std::format( "{}:bb{}: brif to bb{} passes {} args but block expects {}", func.name,
                                     bidx, blk, args->size( ), func.param_indices[ bidx ].size( ) ) );
                         }
@@ -143,7 +135,8 @@ namespace amd64::codegen
                                 || std::is_same_v<T, i_call>  || std::is_same_v<T, i_load>
                                 || std::is_same_v<T, i_and>   || std::is_same_v<T, i_or>  || std::is_same_v<T, i_xor>
                                 || std::is_same_v<T, i_not>   || std::is_same_v<T, i_neg> || std::is_same_v<T, i_shl>
-                                || std::is_same_v<T, i_shr> )
+                                || std::is_same_v<T, i_shr>   || std::is_same_v< T, i_udiv > || std::is_same_v< T, i_shl_imm >
+                                || std::is_same_v< T, i_shr_imm > || std::is_same_v< T, i_sar_imm >)
                     {
                         defined_args.insert( i.result );
                     }

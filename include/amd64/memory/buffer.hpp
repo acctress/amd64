@@ -1,7 +1,11 @@
 #pragma once
 
-#define NOMINMAX
-#include <windows.h>
+#ifdef _WIN32
+    #define NOMINMAX
+    #include <windows.h>
+#else
+    #include <sys/mman.h>
+#endif
 
 #include <array>
 #include <memory>
@@ -16,10 +20,19 @@ namespace amd64::mem
     /// A literal for casting generic integers to std::byte cleanly.
     constexpr std::byte operator""_b( unsigned long long value ) { return static_cast<std::byte>( value ); }
 
-    /// Custom deleter for VirtualProtect allocated memory for wrapping in smart pointers
+    /// Custom deleter for both Windows and Linux allocated memory for wrapping in smart pointers
     struct virtual_deleter
     {
-        void operator()( std::byte* ptr ) const noexcept { if (ptr) VirtualFree( ptr, 0, MEM_RELEASE ); }
+        std::size_t size {};
+        void operator()( std::byte* ptr ) const noexcept
+        {
+            if ( !ptr ) return;
+#ifdef _WIN32
+            VirtualFree( ptr, 0, MEM_RELEASE );
+#else
+            munmap( ptr, size );
+#endif
+        }
     };
 
     using BufferMemory = std::unique_ptr<std::byte[], virtual_deleter>;
@@ -28,18 +41,17 @@ namespace amd64::mem
     class buffer_t
     {
     public:
-        /// TODO: Add support for Linux
-        explicit buffer_t( const std::size_t size ) :
-            m_size( size ),
-            m_memory(
-                static_cast<std::byte*>(
-                    VirtualAlloc(
-                        nullptr,
-                        size,
-                        MEM_COMMIT | MEM_RESERVE,
-                        PAGE_READWRITE
-                    )
-                ))
+        explicit buffer_t( const std::size_t size )
+            : m_size( size ),
+              m_memory( [&]() -> std::byte*
+        {
+#ifdef _WIN32
+          return static_cast< std::byte* >( VirtualAlloc( nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE ) );
+#else
+          void* p = mmap( nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0 );
+          return p == MAP_FAILED ? nullptr : static_cast< std::byte* >( p );
+#endif
+        }( ), virtual_deleter{ size } )
         {
             if ( !m_memory ) throw std::bad_alloc( );
         }
@@ -94,10 +106,12 @@ namespace amd64::mem
 
         [[nodiscard]] bool make_exec( ) const
         {
-            /// TODO: Add support for Linux
-
-            DWORD old { };
-            return VirtualProtect( m_memory.get( ), m_size, PAGE_EXECUTE_READ, &old );
+#ifdef _WIN32
+            DWORD old{};
+            return VirtualProtect( m_memory.get(), m_size, PAGE_EXECUTE_READ, &old );
+#else
+            return mprotect( m_memory.get(), m_size, PROT_READ | PROT_EXEC ) == 0;
+#endif
         }
     private:
         std::size_t  m_size   { };

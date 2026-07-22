@@ -29,6 +29,7 @@ namespace amd64::ir::parser
         kw_isub,
         kw_imul,
         kw_idiv,
+        kw_udiv,
         kw_icmp,
         kw_iand,
         kw_ior,
@@ -36,6 +37,9 @@ namespace amd64::ir::parser
         kw_inot,
         kw_ishl,
         kw_ishr,
+        kw_ishl_imm,
+        kw_ishr_imm,
+        kw_isar_imm,
         kw_neg,
         kw_i64,
         kw_i32,
@@ -85,6 +89,7 @@ namespace amd64::ir::parser
         {   "isub",   token_type_t::kw_isub },
         {   "imul",   token_type_t::kw_imul },
         {   "idiv",   token_type_t::kw_idiv },
+        {   "udiv",   token_type_t::kw_udiv },
         {   "icmp",   token_type_t::kw_icmp },
         {    "i64",    token_type_t::kw_i64 },
         {    "i32",    token_type_t::kw_i32 },
@@ -96,6 +101,9 @@ namespace amd64::ir::parser
         {   "inot",   token_type_t::kw_inot },
         {   "ishl",   token_type_t::kw_ishl },
         {   "ishr",   token_type_t::kw_ishr },
+        { "ishl_imm", token_type_t::kw_ishl_imm },
+        { "ishr_imm", token_type_t::kw_ishr_imm },
+        { "isar_imm", token_type_t::kw_isar_imm },
         {   "ineg",    token_type_t::kw_neg },
     };
 
@@ -524,6 +532,15 @@ namespace amd64::ir::parser
                     check_id( result_id, fn.idiv( lhs, rhs ) );
                     return;
                 }
+                case token_type_t::kw_udiv :
+                {
+                    advance( );
+                    const auto lhs = resolve( expect_percent( ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto rhs = resolve( expect_percent( ) );
+                    check_id( result_id, fn.idiv( lhs, rhs ) );
+                    return;
+                }
                 case token_type_t::kw_icmp :
                 {
                     advance( );
@@ -602,6 +619,42 @@ namespace amd64::ir::parser
                     expect( token_type_t::comma, "','" );
                     const auto rhs = resolve( expect_percent( ) );
                     check_id( result_id, fn.ishr( lhs, rhs ) );
+                    return;
+                }
+                case token_type_t::kw_ishl_imm:
+                {
+                    advance(  );
+                    const auto lhs = resolve( expect_percent(  ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto imm = expect( token_type_t::integer, "integer literal" );
+                    const auto* value = std::get_if< std::int64_t >( &imm.value );
+                    if ( value == nullptr ) throw parse_error( "expected integer literal" );
+                    if ( *value < 0 || *value > 63 ) throw parse_error( "shift immediate out of range" );
+                    check_id( result_id, fn.ishl_imm( lhs, static_cast< std::uint8_t >( *value ) ) );
+                    return;
+                }
+                case token_type_t::kw_isar_imm:
+                {
+                    advance(  );
+                    const auto lhs = resolve( expect_percent(  ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto imm = expect( token_type_t::integer, "integer literal" );
+                    const auto* value = std::get_if< std::int64_t >( &imm.value );
+                    if ( value == nullptr ) throw parse_error( "expected integer literal" );
+                    if ( *value < 0 || *value > 63 ) throw parse_error( "shift immediate out of range" );
+                    check_id( result_id, fn.isar_imm( lhs, static_cast< std::uint8_t >( *value ) ) );
+                    return;
+                }
+                case token_type_t::kw_ishr_imm:
+                {
+                    advance(  );
+                    const auto lhs = resolve( expect_percent(  ) );
+                    expect( token_type_t::comma, "','" );
+                    const auto imm = expect( token_type_t::integer, "integer literal" );
+                    const auto* value = std::get_if< std::int64_t >( &imm.value );
+                    if ( value == nullptr ) throw parse_error( "expected integer literal" );
+                    if ( *value < 0 || *value > 63 ) throw parse_error( "shift immediate out of range" );
+                    check_id( result_id, fn.ishr_imm( lhs, static_cast< std::uint8_t >( *value ) ) );
                     return;
                 }
                 case token_type_t::kw_inot:

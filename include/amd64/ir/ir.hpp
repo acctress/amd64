@@ -62,6 +62,13 @@ namespace amd64::ir
         Value rhs;
     };
 
+    struct i_udiv
+    {
+        Value result;
+        Value lhs;
+        Value rhs;
+    };
+
     struct i_cmp
     {
         Value       result;
@@ -104,11 +111,32 @@ namespace amd64::ir
         Value rhs;
     };
 
+    struct i_shl_imm
+    {
+        Value        result;
+        Value        lhs;
+        std::uint8_t imm;
+    };
+
     struct i_shr
     {
         Value result;
         Value lhs;
         Value rhs;
+    };
+
+    struct i_shr_imm
+    {
+        Value        result;
+        Value        lhs;
+        std::uint8_t imm;
+    };
+
+    struct i_sar_imm
+    {
+        Value        result;
+        Value        lhs;
+        std::uint8_t imm;
     };
 
     struct i_neg
@@ -167,8 +195,8 @@ namespace amd64::ir
         std::uint8_t width;
     };
 
-    using Inst = std::variant< i_const, i_add, i_sub, i_mul, i_div, i_cmp, i_call, i_brif, i_jmp, i_ret, i_and, i_or, i_xor, i_not, i_shl,
-                               i_shr, i_neg, i_load, i_store >;
+    using Inst = std::variant< i_const, i_add, i_sub, i_mul, i_div, i_udiv, i_cmp, i_call, i_brif, i_jmp, i_ret, i_and, i_or, i_xor, i_not, i_shl,
+                               i_shr, i_shl_imm, i_shr_imm, i_sar_imm, i_neg, i_load, i_store >;
 
     struct basic_block_t
     {
@@ -203,6 +231,8 @@ namespace amd64::ir
 
         Value idiv( const Value lhs, const Value rhs ) { return emit< i_div >( type_t::i64, lhs, rhs ); }
 
+        Value udiv( const Value lhs, const Value rhs ) { return emit< i_udiv >( type_t::i64, lhs, rhs ); }
+
         Value iand( const Value lhs, const Value rhs ) { return emit< i_and >( type_t::i64, lhs, rhs ); }
 
         Value ior( const Value lhs, const Value rhs ) { return emit< i_or >( type_t::i64, lhs, rhs ); }
@@ -211,7 +241,13 @@ namespace amd64::ir
 
         Value ishl( const Value lhs, const Value rhs ) { return emit< i_shl >( type_t::i64, lhs, rhs ); }
 
+        Value ishl_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_shl_imm >( type_t::i64, lhs, imm ); }
+
         Value ishr( const Value lhs, const Value rhs ) { return emit< i_shr >( type_t::i64, lhs, rhs ); }
+
+        Value ishr_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_shl_imm >( type_t::i64, lhs, imm ); }
+
+        Value isar_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_sar_imm >( type_t::i64, lhs, imm ); }
 
         Value inot( const Value value ) { return emit< i_not >( type_t::i64, value ); }
 
