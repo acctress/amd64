@@ -72,7 +72,8 @@ namespace amd64::codegen
                     {
                         req( i.lhs ); req( i.rhs );
                     }
-                    else if constexpr ( std::is_same_v<T, i_shl_imm> || std::is_same_v<T, i_shr_imm> )
+                    else if constexpr ( std::is_same_v<T, i_shl_imm> || std::is_same_v<T, i_shr_imm>
+                                     || std::is_same_v<T, i_sar_imm> )
                         req( i.lhs );
                     else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > )
                         req( i.value );
@@ -136,7 +137,7 @@ namespace amd64::codegen
                                 || std::is_same_v<T, i_and>   || std::is_same_v<T, i_or>  || std::is_same_v<T, i_xor>
                                 || std::is_same_v<T, i_not>   || std::is_same_v<T, i_neg> || std::is_same_v<T, i_shl>
                                 || std::is_same_v<T, i_shr>   || std::is_same_v< T, i_udiv > || std::is_same_v< T, i_shl_imm >
-                                || std::is_same_v< T, i_shr_imm > || std::is_same_v< T, i_sar_imm >)
+                                || std::is_same_v< T, i_shr_imm > || std::is_same_v< T, i_sar_imm > || std::is_same_v<T, i_trunc32> || std::is_same_v<T, i_sext32>)
                     {
                         defined_args.insert( i.result );
                     }

@@ -40,6 +40,8 @@ namespace amd64::ir::parser
         kw_ishl_imm,
         kw_ishr_imm,
         kw_isar_imm,
+        kw_itrunc32,
+        kw_isext32,
         kw_neg,
         kw_i64,
         kw_i32,
@@ -104,6 +106,8 @@ namespace amd64::ir::parser
         { "ishl_imm", token_type_t::kw_ishl_imm },
         { "ishr_imm", token_type_t::kw_ishr_imm },
         { "isar_imm", token_type_t::kw_isar_imm },
+        { "itrunc32", token_type_t::kw_itrunc32 },
+        { "isext32", token_type_t::kw_isext32 },
         {   "ineg",    token_type_t::kw_neg },
     };
 
@@ -669,6 +673,20 @@ namespace amd64::ir::parser
                     advance( );
                     const auto val = resolve( expect_percent( ) );
                     check_id( result_id, fn.ineg( val ) );
+                    return;
+                }
+                case token_type_t::kw_itrunc32:
+                {
+                    advance( );
+                    const auto val = resolve( expect_percent( ) );
+                    check_id( result_id, fn.itrunc32( val ) );
+                    return;
+                }
+                case token_type_t::kw_isext32:
+                {
+                    advance( );
+                    const auto val = resolve( expect_percent( ) );
+                    check_id( result_id, fn.isext32( val ) );
                     return;
                 }
                 default : throw parse_error( "unexpected instruction at position " + std::to_string( m_current.pos ) );

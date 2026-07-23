@@ -125,6 +125,12 @@ namespace amd64::assembler
 
         auto mov_reg_reg( const Register dst, const Register src ) { emit_rr( 0x89_b, src, dst ); }
 
+        auto mov_reg_reg32( const Register dst, const Register src )
+        {
+            if ( ext( dst ) || ext( src ) ) m_buffer.write_byte( std::byte{ rex( false, src, dst ) } );
+            m_buffer.write_bytes( { 0x89_b, std::byte{ mod_rm( src, dst ) } } );
+        }
+
         auto add_reg_reg( const Register dst, const Register src ) { emit_rr( 0x01_b, src, dst ); }
 
         auto sub_reg_reg( const Register dst, const Register src ) { emit_rr( 0x29_b, src, dst ); }
@@ -238,6 +244,11 @@ namespace amd64::assembler
         auto movsx_reg_mem16( const Register r, const Register b, const std::int32_t o )
         {
             emit_mem_disp32_ext( { 0x66_b, std::byte { rex( true, r, b ) }, 0x0F_b, 0xBF_b }, r, b, o );
+        }
+
+        auto movsxd( const Register dst, const Register src )
+        {
+            m_buffer.write_bytes( { std::byte{ rex( true, dst, src ) }, 0x63_b, std::byte{ mod_rm( dst, src ) } } );
         }
 
         auto enter( const std::size_t size )

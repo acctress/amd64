@@ -195,8 +195,20 @@ namespace amd64::ir
         std::uint8_t width;
     };
 
+    struct i_trunc32
+    {
+        Value result;
+        Value value;
+    };
+
+    struct i_sext32
+    {
+        Value result;
+        Value value;
+    };
+
     using Inst = std::variant< i_const, i_add, i_sub, i_mul, i_div, i_udiv, i_cmp, i_call, i_brif, i_jmp, i_ret, i_and, i_or, i_xor, i_not, i_shl,
-                               i_shr, i_shl_imm, i_shr_imm, i_sar_imm, i_neg, i_load, i_store >;
+                               i_shr, i_shl_imm, i_shr_imm, i_sar_imm, i_neg, i_load, i_store, i_trunc32, i_sext32 >;
 
     struct basic_block_t
     {
@@ -245,7 +257,7 @@ namespace amd64::ir
 
         Value ishr( const Value lhs, const Value rhs ) { return emit< i_shr >( type_t::i64, lhs, rhs ); }
 
-        Value ishr_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_shl_imm >( type_t::i64, lhs, imm ); }
+        Value ishr_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_shr_imm >( type_t::i64, lhs, imm ); }
 
         Value isar_imm( const Value lhs, const std::uint8_t imm ) { return emit< i_sar_imm >( type_t::i64, lhs, imm ); }
 
@@ -259,6 +271,10 @@ namespace amd64::ir
         {
             return emit< i_call >( type_t::boolean, std::move( call_args ), target );
         }
+
+        Value itrunc32( const Value value ) { return emit< i_trunc32 >( type_t::i32, value ); }
+
+        Value isext32( const Value value ) { return emit< i_sext32 >( type_t::i32, value ); }
 
         void ret( const Value value ) { emit_term< i_ret >( value ); }
 

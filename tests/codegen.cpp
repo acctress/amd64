@@ -2,6 +2,7 @@
 #include <amd64/codegen/codegen.hpp> // Adjust if your code_gen_t is in a differently named header
 #include <amd64/assembler/assembler.hpp>
 #include <amd64/ir/ir.hpp>
+#include <amd64/ir/fmt.hpp>
 
 #include <cstdint>
 #include <string>
@@ -136,4 +137,87 @@ TEST_CASE( "codegen: block parameter passing via jmp", "[codegen][execution]" )
 
     REQUIRE( fn_ptr != nullptr );
     REQUIRE( fn_ptr( 21 ) == 42 );
+}
+
+TEST_CASE( "codegen: ishr_imm testfff", "[codegen][execution]" )
+{
+    Assembler azm { 1024 };code_gen_t codegen( azm );module_t mod_ir;
+    auto& fn = mod_ir.create_function( "f", { type_t::i64 }, type_t::i64 );
+    auto value = fn.get_arg( 0 ).value(  );
+    auto res = fn.ishl_imm( value, 2 );
+    fn.ret( res );
+    auto gen_mod = codegen.compile_module( mod_ir );
+    auto fn_ptr = gen_mod.get_function<std::int64_t(*)(std::int64_t)>( "f" );
+    REQUIRE( fn_ptr != nullptr );
+    REQUIRE( fn_ptr( 10 ) == 40 );
+}
+
+TEST_CASE( "ishl_imm shifts left by immediate", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ishl_imm( fn.args[0], 2 ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t )>( "f" );
+    REQUIRE( f( 10 ) == 40 );
+    REQUIRE( f( 1  ) == 4  );
+}
+
+TEST_CASE( "ishr_imm shifts right by immediate", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.ishr_imm( fn.args[0], 3 ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t )>( "f" );
+    REQUIRE( f( 64 ) == 8 );
+    REQUIRE( f( 16 ) == 2 );
+}
+
+TEST_CASE( "isar_imm arithmetic shift preserves sign", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.isar_imm( fn.args[0], 1 ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t )>( "f" );
+    REQUIRE( f( -8 ) == -4 );
+    REQUIRE( f(  8 ) ==  4 );
+}
+
+TEST_CASE( "udiv unsigned division", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64, type_t::i64 }, type_t::i64 );
+    fn.ret( fn.udiv( fn.args[0], fn.args[1] ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t, std::int64_t )>( "f" );
+    REQUIRE( f( 10,  2 ) == 5  );
+    REQUIRE( f( 100, 4 ) == 25 );
+}
+
+TEST_CASE( "itrunc32 truncates to 32 bits", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.itrunc32( fn.args[0] ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t )>( "f" );
+    REQUIRE( f( 0x1FFFFFFFFLL ) == 0xFFFFFFFFLL );
+    REQUIRE( f( 0x100000001LL ) == 1LL          );
+}
+
+TEST_CASE( "isext32 sign extends 32 to 64 bits", "[codegen][execution]" )
+{
+    Assembler azm{ 1024 }; code_gen_t cg( azm ); module_t mod;
+    auto& fn = mod.create_function( "f", { type_t::i64 }, type_t::i64 );
+    fn.ret( fn.isext32( fn.args[0] ) );
+    auto gen = cg.compile_module( mod );
+    auto f = gen.get_function<std::int64_t(*)( std::int64_t )>( "f" );
+
+    std::println("{}", to_string(mod));
+
+    REQUIRE( f( 0xFFFFFFFFLL ) == -1LL          );
+    REQUIRE( f( 0x7FFFFFFFLL ) == 2147483647LL  );
+    REQUIRE( f( 0x80000000LL ) == -2147483648LL );
 }

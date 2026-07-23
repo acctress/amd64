@@ -89,6 +89,10 @@ namespace amd64::ir
                     fmt += std::format( "\t%{} = isar_imm %{}, {}\n", i.result, i.lhs, i.imm );
                 else if constexpr ( std::is_same_v< T, i_neg > )
                     fmt += std::format( "\t%{} = ineg %{}\n", i.result, i.value );
+                else if constexpr ( std::is_same_v< T, i_trunc32 > )
+                    fmt += std::format( "\t%{} = itrunc32 %{}\n", i.result, i.value );
+                else if constexpr ( std::is_same_v< T, i_sext32> )
+                    fmt += std::format( "\t%{} = isext32 %{}\n", i.result, i.value );
                 else if constexpr ( std::is_same_v< T, i_cmp > )
                     fmt += std::format( "\t%{} = icmp.{} %{}, %{}\n", i.result, fmt_set_cc_kind( i.kind ), i.lhs, i.rhs );
                 else if constexpr ( std::is_same_v< T, i_load > )

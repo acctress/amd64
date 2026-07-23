@@ -23,16 +23,19 @@ namespace amd64::codegen
     inline constexpr std::size_t GEN_REG_COUNT = 5;
     inline constexpr std::size_t PTR_SIZE      = 8;
 
-    /// TODO: add system v (for linux) register lists
+#ifdef _WIN32
     inline constexpr std::array CALLEE_SAVED { Register::rbx, Register::rsi, Register::rdi, Register::r12,
                                                Register::r13, Register::r14, Register::r15 };
+#else
+    inline constexpr std::array CALLEE_SAVED { Register::rbx, Register::r12, Register::r13, Register::r14,
+                                                Register::r15, Register::rbp };
+#endif
 
-    inline constexpr std::array ARG_REGISTERS {
-        Register::rcx,
-        Register::rdx,
-        Register::r8,
-        Register::r9,
-    };
+#ifdef _WIN32
+    inline constexpr std::array ARG_REGISTERS { Register::rcx, Register::rdx, Register::r8, Register::r9 };
+#else
+    inline constexpr std::array ARG_REGISTERS { Register::rdi, Register::rsi, Register::rdx, Register::rcx, Register::r8, Register::r9 };
+#endif
 
     inline constexpr std::array GENERAL_PURPOSE {
         Register::rbx, Register::r12, Register::r13, Register::r14, Register::r15,
@@ -95,8 +98,8 @@ namespace amd64::codegen
                                         || std::is_same_v<T, i_call>  || std::is_same_v<T, i_load> || std::is_same_v<T, i_udiv>
                                         || std::is_same_v<T, i_and>   || std::is_same_v<T, i_or>  || std::is_same_v<T, i_xor>
                                         || std::is_same_v<T, i_not>   || std::is_same_v<T, i_neg> || std::is_same_v<T, i_shl>
-                                        || std::is_same_v<T, i_shr>   || std::is_same_v<T, i_shr_imm> || std::is_same_v<T, i_shr_imm>
-                                        || std::is_same_v<T, i_sar_imm> )
+                                        || std::is_same_v<T, i_shr>   || std::is_same_v<T, i_shr_imm> || std::is_same_v<T, i_shl_imm>
+                                        || std::is_same_v<T, i_sar_imm> || std::is_same_v<T, i_trunc32> || std::is_same_v<T, i_sext32> )
                             {
                                 live_ranges[ i.result ] = live_range_t{ i.result, inst_idx, 0 };
                             }
@@ -135,7 +138,8 @@ namespace amd64::codegen
                                 live_ranges.at( i.lhs ).end = inst_idx;
                                 live_ranges.at( i.rhs ).end = inst_idx;
                             }
-                            else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > || std::is_same_v< T, i_ret > )
+                            else if constexpr ( std::is_same_v< T, i_not > || std::is_same_v< T, i_neg > || std::is_same_v< T, i_ret >
+                                             || std::is_same_v<T, i_trunc32> || std::is_same_v<T, i_sext32> )
                             {
                                 live_ranges.at( i.value ).end = inst_idx;
                             }
@@ -304,6 +308,20 @@ namespace amd64::codegen
                                 emit_unary( result, i.value, i.result, &Assembler::not_reg );
                             else if constexpr ( std::is_same_v< T, i_neg > )
                                 emit_unary( result, i.value, i.result, &Assembler::neg );
+                            else if constexpr ( std::is_same_v< T, i_trunc32 > )
+                            {
+                                const auto src = in_register( result, i.value, Register::r10 );
+                                const auto reg     = dest_register( result, i.result );
+                                m_asm.mov_reg_reg32( reg, src );
+                                store_if_spilled( result, i.result, reg );
+                            }
+                            else if constexpr ( std::is_same_v< T, i_sext32 > )
+                            {
+                                const auto src = in_register( result, i.value, Register::r10 );
+                                const auto reg     = dest_register( result, i.result );
+                                m_asm.movsxd( reg, src );
+                                store_if_spilled( result, i.result, reg );
+                            }
                             else if constexpr ( std::is_same_v< T, i_shl> )
                             {
                                 const auto lhs = in_register( result, i.lhs, Register::r10 );
